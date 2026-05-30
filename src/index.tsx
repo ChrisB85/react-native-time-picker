@@ -64,11 +64,34 @@ const defaultColors: Colors = {
   topInActiveTextColor: 'rgb(97, 97, 97)',
 };
 
+// Offset (px) between outer and inner ring radii in 24h mode
+const INNER_RING_OFFSET = 55;
 
+// Outer ring: same positions as 12h clock face
+const OUTER_12H_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
+// Inner ring: 0 (midnight) + 13–23
+const INNER_24H_HOURS = [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as const;
 
-
-
-
+/**
+ * Maps an hour value to its index in the hourElements array.
+ *
+ * 12h: elements = [12, 1, 2, ..., 11], indices 0–11
+ * 24h: elements = [12, 1, ..., 11, 0, 13, ..., 23], indices 0–23
+ */
+function getInitialHourIndex(hour: number, is24Hour: boolean): number {
+  if (!is24Hour) {
+    if (hour === 12) return 0;
+    if (hour >= 1 && hour <= 11) return hour;
+    return 0;
+  }
+  // outer ring indices 0–11
+  if (hour === 12) return 0;
+  if (hour >= 1 && hour <= 11) return hour;
+  // inner ring: INNER_24H_HOURS = [0, 13, 14, ..., 23] → base index 12
+  if (hour === 0) return 12;
+  if (hour >= 13 && hour <= 23) return hour; // 13→13, ..., 23→23
+  return 0;
+}
 
 const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
   StyleSheet.create({
@@ -97,7 +120,6 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       position: 'relative',
       backgroundColor: "white",
       ...StyleSheet.flatten(customStyles?.clock || {}),
-
     },
     clock: {
       width: '100%',
@@ -105,7 +127,6 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       justifyContent: 'center',
       alignItems: 'center',
       position: 'absolute',
-
     },
     inactiveNumber: {
       position: 'absolute',
@@ -113,7 +134,6 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       fontWeight: 'bold',
       height: 35,
       width: 35,
-
       textAlign: 'center',
       textAlignVertical: 'center',
       zIndex: 10,
@@ -128,8 +148,6 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       zIndex: 1,
       height: "100%",
       ...StyleSheet.flatten(customStyles?.indicatorLine || {}),
-
-
     },
     activeNumber: {
       backgroundColor: colors.clockActiveColor,
@@ -143,7 +161,6 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       textAlign: 'center',
       textAlignVertical: 'center',
       ...StyleSheet.flatten(customStyles?.activeNumber || {}),
-
     },
     centerComponent: {
       backgroundColor: colors.clockActiveColor,
@@ -168,17 +185,12 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       color: colors.topInActiveTextColor,
       margin: 0,
       fontWeight: "600",
-
     },
     periodContainer: { flex: 1, justifyContent: "center", alignItems: "center" }
   });
 
 
-const getIndicatorRotation = (index: number, noOfElements: number) =>
-  (index / noOfElements) * 360;
-
 function ElementsComponent({
-  radius,
   elements,
   setValue,
   center,
@@ -189,7 +201,6 @@ function ElementsComponent({
   setIndex
 
 }: {
-  radius: number;
   elements: Element[];
   value: number;
   setValue: Dispatch<SetStateAction<number>>;
@@ -207,22 +218,36 @@ function ElementsComponent({
 }) {
   const [dimensions, setDimensions] = React.useState({ width: 0, height: 0 });
 
+  // Compute indicator geometry from the active element's actual position so it
+  // works correctly for both single-ring (12h) and dual-ring (24h) layouts.
+  const activeElement = elements[index];
+  const lineHeight = (activeElement && center.x > 0)
+    ? Math.sqrt(
+        Math.pow(activeElement.position.x - center.x, 2) +
+        Math.pow(activeElement.position.y - center.y, 2)
+      ) - 5
+    : 0;
+  const lineRotation = (activeElement && center.x > 0)
+    ? Math.atan2(
+        activeElement.position.y - center.y,
+        activeElement.position.x - center.x
+      ) * (180 / Math.PI) + 90
+    : 0;
+
   return (
     <>
       {elements.map(({ position, value: elementValue }, currIndex) => (
         (index % step) === 0 && (
           customComponents?.NumberComponent ? (
-            <View 
+            <View
             key={currIndex}
             style={
-              
               {
                 left: (position.x - dimensions.width / 2),
                 top: (position.y - dimensions.height / 2),
                 position:"absolute",
                 flex:1
               }
-
             }
             onLayout={(event) => {
               const { width, height } = event.nativeEvent.layout;
@@ -232,23 +257,19 @@ function ElementsComponent({
               <customComponents.NumberComponent
                 value={elementValue}
                 isActive={index === currIndex}
-
               />
             </View>
           ) : (
             <Text
-
               key={currIndex}
               onPress={() => { setValue(elementValue); setIndex(currIndex) }}
               style={[
                 styles.inactiveNumber,
-
                 (index === currIndex) && styles.activeNumber,
                 {
                   left: (position.x - ((styles?.inactiveNumber?.width || 35) as number) / 2),
                   top: (position.y - ((styles?.inactiveNumber?.height || 35) as number) / 2),
                 }
-
               ]}
             >
               {elementValue}
@@ -260,13 +281,11 @@ function ElementsComponent({
       <View
         pointerEvents={"none"}
         style={{
-
-          height: (radius - 20),
-          transform: [{ rotate: `${getIndicatorRotation(index, elements.length)}deg` }],
-          top: (center.y - (radius - 20)),
+          height: lineHeight,
+          transform: [{ rotate: `${lineRotation}deg` }],
+          top: (center.y - lineHeight),
           position: "absolute",
           transformOrigin: 'bottom',
-
         }}
       >
         {
@@ -280,29 +299,21 @@ function ElementsComponent({
 
 /**
  * TimePicker Component
- * 
- * A customizable clock-style time picker that supports hours, minutes, and period (AM/PM).
- * 
- * @param {Object} props - The properties for the TimePicker component.
+ *
+ * A customizable clock-style time picker that supports hours, minutes, and
+ * optionally period (AM/PM) or 24-hour format.
+ *
  * @param {number} props.radius - The radius of the clock circle.
- * @param {number} [props.numberRadius] - The radius for positioning clock numbers (default: radius - 40).
+ * @param {number} [props.numberRadius] - Radius for positioning clock numbers (default: radius - 40).
  * @param {Object} [props.colors] - Custom colors for the clock elements.
- * @param {number} [props.initialHour=12] - The initial hour value (default: 12).
- * @param {number} [props.initialMinute=0] - The initial minute value (default: 0).
- * @param {'am' | 'pm'} [props.initialPeriod='am'] - The initial period (default: 'am').
- * @param {Object} [props.customComponents] - Custom components for various parts of the clock.
- * @param {React.ReactNode} [props.customComponents.CenterComponent] - Custom center element of the clock.
- * @param {React.ReactNode} [props.customComponents.LineComponent] - Custom line element connecting the center to numbers.
- * @param {React.ReactNode} [props.customComponents.EndComponent] - Custom end component for clock hand.
- * @param {(props: { value: number; isActive: boolean }) => React.ReactNode} [props.customComponents.NumberComponent]
- *    - Custom number component for clock labels.
- * @param {(props: { hour: number, minute: number, switchMode: (mode: Mode) => void, activeMode: Mode, period: "am" | "pm", setPeriod: (period: "am" | "pm") => void }) => React.ReactNode} 
- *    [props.customComponents.TopComponent] - Custom top section displaying hours, minutes, and AM/PM.
- * @param {Object} [props.customStyles] - Custom styles for the TimePicker and its elements.
- * @param {(hour: number, minute: number, period: "am" | "pm") => void} [props.onValueChange] 
- *    - Callback function triggered when the time value changes.
- * 
- * @returns {JSX.Element} A fully customizable clock-style time picker component.
+ * @param {number} [props.initialHour=12] - Initial hour. 1–12 for 12h mode; 0–23 for 24h mode.
+ * @param {number} [props.initialMinute=0] - Initial minute value.
+ * @param {'am' | 'pm'} [props.initialPeriod='am'] - Initial period (12h mode only).
+ * @param {boolean} [props.is24Hour=false] - Enable 24-hour mode. Shows inner+outer rings; hides AM/PM.
+ * @param {Object} [props.customComponents] - Custom components for various clock parts.
+ * @param {Object} [props.customStyles] - Custom styles for the TimePicker.
+ * @param {Function} [props.onValueChange] - Callback on time change.
+ *   In 12h mode: (hour, minute, period). In 24h mode: (hour, minute) — period is undefined.
  */
 export default function TimePicker({
   radius,
@@ -311,36 +322,42 @@ export default function TimePicker({
   initialHour = 12,
   initialMinute = 0,
   initialPeriod = 'am',
+  is24Hour = false,
   customComponents,
   onValueChange,
   customStyles,
-  
 }: {
   radius: number;
-  numberRadius?:number;
+  numberRadius?: number;
   colors?: Colors;
   initialHour?: number;
   initialMinute?: number;
   initialPeriod?: 'am' | 'pm';
+  is24Hour?: boolean;
   customComponents?: {
     CenterComponent?: React.ReactNode;
     LineComponent?: React.ReactNode;
     EndComponent?: React.ReactNode;
     NumberComponent?: (props: { value: number; isActive: boolean }) => React.ReactNode;
-    TopComponent?:(props: { hour: number; minute: number,switchMode:(mode:Mode)=>void,activeMode:Mode,period: "am" | "pm" ,setPeriod:(period:"am"|"pm")=>void}) =>  React.ReactNode;
+    TopComponent?: (props: {
+      hour: number;
+      minute: number;
+      switchMode: (mode: Mode) => void;
+      activeMode: Mode;
+      period?: 'am' | 'pm';
+      setPeriod?: (period: 'am' | 'pm') => void;
+      is24Hour: boolean;
+    }) => React.ReactNode;
   };
   customStyles: CustomStyles,
-  onValueChange?: ((hour: number, minute: number, period: "am" | "pm") => void)
-
-
+  onValueChange?: (hour: number, minute: number, period?: 'am' | 'pm') => void;
 }) {
 
   colors = { ...defaultColors, ...colors }
   const styles = defaultStyles(colors, customStyles);
   const containerRef = useRef<View | null>(null);
 
-  const hours = [12, ...Array.from({ length: 11 }, (_, index) => index + 1)];
-  const minutes = Array.from({ length: 12 }, (_, index) => index * 5);
+  const minutes = Array.from({ length: 12 }, (_, i) => i * 5);
   const [hour, setHour] = useState<number>(initialHour);
   const [minute, setMinute] = useState<number>(initialMinute);
   const [period, setPeriod] = useState<'am' | 'pm'>(initialPeriod);
@@ -348,38 +365,82 @@ export default function TimePicker({
   const [center, setCenter] = useState<Center>({ x: 0, y: 0 });
   const [hourElements, setHourElements] = useState<Element[]>([]);
   const [minuteElements, setMinuteElements] = useState<Element[]>([]);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() => getInitialHourIndex(initialHour, is24Hour));
 
   const handleLayout = (event: any) => {
     const { width, height } = event.nativeEvent.layout;
     const centerX = width / 2;
     const centerY = height / 2;
-    const numRadius = numberRadius??(radius - 40);
-    const hourElements: Element[] = [];
-    const minuteElements: Element[] = [];
+    const numRadius = numberRadius ?? (radius - 40);
+    const newHourElements: Element[] = [];
+    const newMinuteElements: Element[] = [];
 
     setCenter({ x: centerX, y: centerY });
 
-    for (let i = 0; i < hours.length; i++) {
-      const angle = (i * Math.PI) / (hours.length / 2) - Math.PI / 2;
-      const x = centerX + numRadius * Math.cos(angle);
-      const y = centerY + numRadius * Math.sin(angle);
-      hourElements.push({ position: { x, y }, value: hours[i]!, label: i, screenPosition: { x: 0, y: 0 } });
+    if (is24Hour) {
+      // Outer ring: 12, 1, 2, ..., 11 → element indices 0–11
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * Math.PI) / 6 - Math.PI / 2;
+        const x = centerX + numRadius * Math.cos(angle);
+        const y = centerY + numRadius * Math.sin(angle);
+        newHourElements.push({
+          position: { x, y },
+          value: OUTER_12H_HOURS[i]!,
+          label: i,
+          screenPosition: { x: 0, y: 0 },
+        });
+      }
+      // Inner ring: 0, 13, 14, ..., 23 → element indices 12–23
+      const innerRadius = numRadius - INNER_RING_OFFSET;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * Math.PI) / 6 - Math.PI / 2;
+        const x = centerX + innerRadius * Math.cos(angle);
+        const y = centerY + innerRadius * Math.sin(angle);
+        newHourElements.push({
+          position: { x, y },
+          value: INNER_24H_HOURS[i]!,
+          label: i + 12,
+          screenPosition: { x: 0, y: 0 },
+        });
+      }
+    } else {
+      const hours = [12, ...Array.from({ length: 11 }, (_, i) => i + 1)];
+      for (let i = 0; i < hours.length; i++) {
+        const angle = (i * Math.PI) / (hours.length / 2) - Math.PI / 2;
+        const x = centerX + numRadius * Math.cos(angle);
+        const y = centerY + numRadius * Math.sin(angle);
+        newHourElements.push({
+          position: { x, y },
+          value: hours[i]!,
+          label: i,
+          screenPosition: { x: 0, y: 0 },
+        });
+      }
     }
+
     for (let i = 0; i < minutes.length; i++) {
       const angle = (i * Math.PI) / (minutes.length / 2) - Math.PI / 2;
       const x = centerX + numRadius * Math.cos(angle);
       const y = centerY + numRadius * Math.sin(angle);
-      minuteElements.push({ position: { x, y }, value: minutes[i]!, label: i * 5, screenPosition: { x: 0, y: 0 } });
+      newMinuteElements.push({
+        position: { x, y },
+        value: minutes[i]!,
+        label: i * 5,
+        screenPosition: { x: 0, y: 0 },
+      });
     }
 
-    setHourElements(hourElements);
-    setMinuteElements(minuteElements);
+    setHourElements(newHourElements);
+    setMinuteElements(newMinuteElements);
   };
 
   useEffect(() => {
     if (onValueChange) {
-      onValueChange(hour, minute, period);
+      if (is24Hour) {
+        onValueChange(hour, minute);
+      } else {
+        onValueChange(hour, minute, period);
+      }
     }
   }, [hour, minute, period])
 
@@ -391,7 +452,7 @@ export default function TimePicker({
       duration: 200,
       useNativeDriver: false,
     }).start(() => {
-      setIsHourMode(newMode=== Mode.HOUR);
+      setIsHourMode(newMode === Mode.HOUR);
       Animated.timing(switchAnimation, {
         toValue: 1,
         duration: 200,
@@ -400,22 +461,17 @@ export default function TimePicker({
     });
   }
 
-
-
   const scaleValueForTransistion = switchAnimation.interpolate({
     inputRange: [0, 1],
     outputRange: [1.2, 1],
   });
 
   const updateValue = (closestIndex: any, hourMode: any) => {
-
     setIndex(closestIndex)
     if (hourMode) {
       setHour(hourElements[closestIndex]?.value ?? 0);
-    }
-    else {
+    } else {
       setMinute(minuteElements[closestIndex]?.value ?? 0);
-
     }
   }
 
@@ -445,23 +501,21 @@ export default function TimePicker({
   );
 
 
-
-
-
   return (
     <View
       style={styles.container}>
       {
-        customComponents?.TopComponent?
+        customComponents?.TopComponent ?
         <customComponents.TopComponent
-        hour={hour}
-        minute={minute}
-        switchMode={switchMode}
-        activeMode={isHourMode ? Mode.HOUR : Mode.MINUTE}
-        period={period}
-        setPeriod={(period)=>setPeriod(period)}
-      />
-         :
+          hour={hour}
+          minute={minute}
+          switchMode={switchMode}
+          activeMode={isHourMode ? Mode.HOUR : Mode.MINUTE}
+          period={is24Hour ? undefined : period}
+          setPeriod={is24Hour ? undefined : setPeriod}
+          is24Hour={is24Hour}
+        />
+        :
         <View style={styles.topComponent}>
           <Text
             onPress={() => switchMode(Mode.HOUR)}
@@ -470,7 +524,7 @@ export default function TimePicker({
               isHourMode && { color: colors.topActiveTextColor, backgroundColor: colors.topActiveColor },
             ]}
           >
-            {(hour ).toString().padStart(2, '0')}
+            {hour.toString().padStart(2, '0')}
           </Text>
           <Text
             onPress={() => switchMode(Mode.MINUTE)}
@@ -481,37 +535,38 @@ export default function TimePicker({
           >
             {minute.toString().padStart(2, '0')}
           </Text>
-          <TouchableHighlight onPress={() => { setPeriod((prev) => prev === "am" ? "pm" : "am") }} style={styles.AmPmContainer}>
-            <>
-              <View
-                style={[styles.periodContainer, period === 'am' && { backgroundColor: colors.topActiveColor }]}
-              >
-
-                <Text
-                  style={[
-                    styles.AmPmContainerText,
-                    period === 'am' && { color: colors.topActiveTextColor },
-                  ]}
+          {!is24Hour && (
+            <TouchableHighlight onPress={() => { setPeriod((prev) => prev === "am" ? "pm" : "am") }} style={styles.AmPmContainer}>
+              <>
+                <View
+                  style={[styles.periodContainer, period === 'am' && { backgroundColor: colors.topActiveColor }]}
                 >
-                  AM
-                </Text>
-              </View>
-              <View
-                style={[styles.periodContainer, period === 'pm' && { backgroundColor: colors.topActiveColor }]}
-              >
-
-                <Text
-                  style={[
-                    styles.AmPmContainerText,
-                    period === 'pm' && { color: colors.topActiveTextColor },
-                  ]}
+                  <Text
+                    style={[
+                      styles.AmPmContainerText,
+                      period === 'am' && { color: colors.topActiveTextColor },
+                    ]}
+                  >
+                    AM
+                  </Text>
+                </View>
+                <View
+                  style={[styles.periodContainer, period === 'pm' && { backgroundColor: colors.topActiveColor }]}
                 >
-                  PM
-                </Text>
-              </View>
-            </>
-          </TouchableHighlight>
-        </View>}
+                  <Text
+                    style={[
+                      styles.AmPmContainerText,
+                      period === 'pm' && { color: colors.topActiveTextColor },
+                    ]}
+                  >
+                    PM
+                  </Text>
+                </View>
+              </>
+            </TouchableHighlight>
+          )}
+        </View>
+      }
       <View
         onStartShouldSetResponder={() => true}
         onTouchEnd={(e) => {
@@ -548,7 +603,6 @@ export default function TimePicker({
             ]}
           >
             <ElementsComponent
-              radius={numberRadius??radius-20}
               value={isHourMode ? hour : minute}
               setValue={isHourMode ? setHour : setMinute}
               elements={isHourMode ? hourElements : minuteElements}
@@ -560,10 +614,8 @@ export default function TimePicker({
                 EndComponent: customComponents?.EndComponent,
                 NumberComponent: customComponents?.NumberComponent,
               }}
-
               setIndex={setIndex}
               index={index}
-
             />
           </Animated.View>
         </View>

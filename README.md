@@ -1,6 +1,6 @@
 # React Native TimePicker
 
-A customizable clock-style time picker component for React Native. This library allows you to create a visually appealing and fully customizable time picker that supports hours, minutes, and period selection (AM/PM).
+A customizable clock-style time picker component for React Native. This library allows you to create a visually appealing and fully customizable time picker that supports hours, minutes, AM/PM selection, and 24-hour format.
 ![image](https://github.com/user-attachments/assets/6d4ceb73-000a-425f-8183-30102cf58f2b)
 
 
@@ -70,12 +70,13 @@ export default function BasicTimePickerExample(){
 |------|------|---------------|-------------|
 | numberRadius | number | radius - 40 | The radius for positioning clock numbers. |
 | colors | Colors | See below | Custom colors for the clock elements. |
-| initialHour | number | 12 | The initial hour value. |
+| initialHour | number | 12 | Initial hour. 1–12 in 12h mode; 0–23 in 24h mode. |
 | initialMinute | number | 0 | The initial minute value. |
-| initialPeriod | 'am' \| 'pm' | 'am' | Initial period setting |
+| initialPeriod | 'am' \| 'pm' | 'am' | Initial period (12h mode only). |
+| is24Hour | boolean | false | Enable 24-hour mode. Shows an inner ring (0, 13–23) and an outer ring (1–12) on the clock face. AM/PM selector is hidden. |
 | customComponents | Custom Components Object | - | Provide custom React components to override specific parts of the TimePicker. |
 | customStyles | CustomStyles | - | Custom styles for the TimePicker and its elements. |
-| onValueChange | (hour, minute, period) => void | - | Callback function triggered when the time value changes. |
+| onValueChange | (hour, minute, period?) => void | - | Callback on time change. In 12h mode `period` is `'am'` or `'pm'`; in 24h mode `period` is `undefined`. |
 
 ## Customization
 
@@ -102,7 +103,7 @@ You can provide your own React components to replace certain elements of the Tim
 | LineComponent | React.ReactNode | Custom line connecting the center to numbers. |
 | EndComponent | React.ReactNode | Custom end component for clock hand. |
 | NumberComponent | (props: { value: number, isActive: boolean }) => React.ReactNode | Custom component for clock numbers. |
-| TopComponent | (props) => React.ReactNode | Custom top section displaying hours, minutes, and AM/PM. |
+| TopComponent | (props) => React.ReactNode | Custom top section displaying hours, minutes, and AM/PM. In 24h mode `period` and `setPeriod` are `undefined`; `is24Hour` is `true`. |
 
 ### Default Colors
 
@@ -338,6 +339,33 @@ const styles = StyleSheet.create<StyleTypes>({
   }
 });
 ```
+
+### 24-Hour Mode Example
+
+```tsx
+import { useState } from 'react';
+import TimePicker from 'rn-time-picker';
+
+export default function Example() {
+  const [time, setTime] = useState({ hour: 14, minute: 30 });
+
+  return (
+    <TimePicker
+      radius={120}
+      is24Hour
+      initialHour={14}
+      initialMinute={30}
+      onValueChange={(hour, minute) => setTime({ hour, minute })}
+    />
+  );
+}
+```
+
+The clock shows two concentric rings when in 24h mode:
+- **Outer ring** — hours 1–12
+- **Inner ring** — hours 13–23 and 0 (midnight)
+
+Touch closer to the outer edge to select 1–12; touch closer to the center to select 13–23/0.
 
 ## License
 

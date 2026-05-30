@@ -1,13 +1,15 @@
-import { StyleSheet , View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import BasicTimePickerExample from './components/basicComponent';
 import CustomizedTimePickerExample from './components/customizedComponent';
+import TimePicker24HExample from './components/timePicker24HExample';
 
 export default function App() {
   return (
-    <View style={styles.container} >
-    <BasicTimePickerExample/>
-    <CustomizedTimePickerExample/>
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <BasicTimePickerExample/>
+      <CustomizedTimePickerExample/>
+      <TimePicker24HExample/>
+    </ScrollView>
   );
 }
 
