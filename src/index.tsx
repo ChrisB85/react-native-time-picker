@@ -282,11 +282,14 @@ function ElementsComponent({
         pointerEvents={"none"}
         style={{
           height: lineHeight,
-          transform: [{ rotate: `${lineRotation}deg` }],
           top: (center.y - lineHeight),
           left: center.x - 1,
           position: "absolute",
-          transformOrigin: 'bottom',
+          transform: [
+            { translateY: -(lineHeight / 2) },
+            { rotate: `${lineRotation}deg` },
+            { translateY: lineHeight / 2 },
+          ],
         }}
       >
         {
