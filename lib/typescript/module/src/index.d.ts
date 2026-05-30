@@ -39,9 +39,11 @@ export declare enum Mode {
  * @param {Function} [props.onValueChange] - Callback on time change.
  *   In 12h mode: (hour, minute, period). In 24h mode: (hour, minute) — period is undefined.
  */
-export default function TimePicker({ radius, numberRadius, colors, initialHour, initialMinute, initialPeriod, is24Hour, customComponents, onValueChange, customStyles, }: {
+export default function TimePicker({ radius, numberRadius, innerRingOffset, colors, initialHour, initialMinute, initialPeriod, is24Hour, customComponents, onValueChange, customStyles, }: {
     radius: number;
     numberRadius?: number;
+    /** Offset in px from outer ring radius to inner ring radius in 24h mode. Default: 55. Lower = inner ring closer to outer. */
+    innerRingOffset?: number;
     colors?: Colors;
     initialHour?: number;
     initialMinute?: number;

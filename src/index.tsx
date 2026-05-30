@@ -64,8 +64,8 @@ const defaultColors: Colors = {
   topInActiveTextColor: 'rgb(97, 97, 97)',
 };
 
-// Offset (px) between outer and inner ring radii in 24h mode
-const INNER_RING_OFFSET = 55;
+// Default offset (px) between outer and inner ring radii in 24h mode
+const DEFAULT_INNER_RING_OFFSET = 55;
 
 // Outer ring: same positions as 12h clock face
 const OUTER_12H_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
@@ -322,6 +322,7 @@ function ElementsComponent({
 export default function TimePicker({
   radius,
   numberRadius=radius-40,
+  innerRingOffset=DEFAULT_INNER_RING_OFFSET,
   colors = defaultColors,
   initialHour = 12,
   initialMinute = 0,
@@ -333,6 +334,8 @@ export default function TimePicker({
 }: {
   radius: number;
   numberRadius?: number;
+  /** Offset in px from outer ring radius to inner ring radius in 24h mode. Default: 55. Lower = inner ring closer to outer. */
+  innerRingOffset?: number;
   colors?: Colors;
   initialHour?: number;
   initialMinute?: number;
@@ -395,7 +398,7 @@ export default function TimePicker({
         });
       }
       // Inner ring: 0, 13, 14, ..., 23 → element indices 12–23
-      const innerRadius = numRadius - INNER_RING_OFFSET;
+      const innerRadius = numRadius - innerRingOffset;
       for (let i = 0; i < 12; i++) {
         const angle = (i * Math.PI) / 6 - Math.PI / 2;
         const x = centerX + innerRadius * Math.cos(angle);
