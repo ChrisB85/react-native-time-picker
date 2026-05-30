@@ -72,6 +72,10 @@ const OUTER_12H_HOURS = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 // Inner ring: 0 (midnight) + 13–23
 const INNER_24H_HOURS = [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23] as const;
 
+function getInitialMinuteIndex(minute: number): number {
+  return Math.round(minute / 5) % 12;
+}
+
 /**
  * Maps an hour value to its index in the hourElements array.
  *
@@ -459,7 +463,9 @@ export default function TimePicker({
       duration: 200,
       useNativeDriver: false,
     }).start(() => {
-      setIsHourMode(newMode === Mode.HOUR);
+      const newIsHour = newMode === Mode.HOUR;
+      setIsHourMode(newIsHour);
+      setIndex(newIsHour ? getInitialHourIndex(hour, is24Hour) : getInitialMinuteIndex(minute));
       Animated.timing(switchAnimation, {
         toValue: 1,
         duration: 200,
