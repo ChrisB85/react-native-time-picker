@@ -284,6 +284,7 @@ function ElementsComponent({
           height: lineHeight,
           transform: [{ rotate: `${lineRotation}deg` }],
           top: (center.y - lineHeight),
+          left: center.x - 1,
           position: "absolute",
           transformOrigin: 'bottom',
         }}
