@@ -286,9 +286,9 @@ function ElementsComponent({
           left: center.x - 1,
           position: "absolute",
           transform: [
-            { translateY: -(lineHeight / 2) },
-            { rotate: `${lineRotation}deg` },
             { translateY: lineHeight / 2 },
+            { rotate: `${lineRotation}deg` },
+            { translateY: -(lineHeight / 2) },
           ],
         }}
       >
