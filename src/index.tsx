@@ -107,12 +107,13 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
     },
     topComponent: {
       flexDirection: 'row',
-      gap: 10,
+      gap: 6,
     },
     topComponentText: {
       fontSize: 20,
       backgroundColor: colors.topInActiveColor,
-      padding: 10,
+      paddingVertical: 6,
+      paddingHorizontal: 10,
       borderRadius: 8,
       fontWeight: '500',
       color: colors.topInActiveTextColor,
@@ -539,6 +540,7 @@ export default function TimePicker({
           >
             {hour.toString().padStart(2, '0')}
           </Text>
+          <Text style={{ fontSize: 20, alignSelf: 'center', color: colors.topInActiveTextColor, fontWeight: '500' }}>:</Text>
           <Text
             onPress={() => switchMode(Mode.MINUTE)}
             style={[
