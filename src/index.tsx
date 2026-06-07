@@ -133,15 +133,21 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       alignItems: 'center',
       position: 'absolute',
     },
+    // Layout container for an inactive number. Sizing/positioning live here so
+    // the glyph can be centered with flexbox (works on both platforms).
     inactiveNumber: {
       position: 'absolute',
-      fontSize: 15,
-      fontWeight: 'bold',
       height: 35,
       width: 35,
-      textAlign: 'center',
-      textAlignVertical: 'center',
+      justifyContent: 'center',
+      alignItems: 'center',
       zIndex: 10,
+    },
+    // Text style for an inactive number.
+    inactiveNumberText: {
+      fontSize: 15,
+      fontWeight: 'bold',
+      textAlign: 'center',
       color: "white",
       ...StyleSheet.flatten(customStyles?.inActiveNumber || {}),
     },
@@ -154,6 +160,8 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       height: "100%",
       ...StyleSheet.flatten(customStyles?.indicatorLine || {}),
     },
+    // Layout container for the active number. borderRadius on a View is honored
+    // on both iOS and Android (iOS ignores it on a Text background → square).
     activeNumber: {
       backgroundColor: colors.clockActiveColor,
       borderRadius: 100,
@@ -161,10 +169,12 @@ const defaultStyles = (colors: Colors, customStyles: CustomStyles) =>
       width: 35,
       position: 'absolute',
       justifyContent: 'center',
-      alignContent: 'center',
+      alignItems: 'center',
       zIndex: 10,
+    },
+    // Text style overrides for the active number (e.g. color on selection).
+    activeNumberText: {
       textAlign: 'center',
-      textAlignVertical: 'center',
       ...StyleSheet.flatten(customStyles?.activeNumber || {}),
     },
     centerComponent: {
@@ -265,9 +275,8 @@ function ElementsComponent({
               />
             </View>
           ) : (
-            <Text
+            <View
               key={currIndex}
-              onPress={() => { setValue(elementValue); setIndex(currIndex) }}
               style={[
                 styles.inactiveNumber,
                 (index === currIndex) && styles.activeNumber,
@@ -277,8 +286,16 @@ function ElementsComponent({
                 }
               ]}
             >
-              {elementValue}
-            </Text>
+              <Text
+                onPress={() => { setValue(elementValue); setIndex(currIndex) }}
+                style={[
+                  styles.inactiveNumberText,
+                  (index === currIndex) && styles.activeNumberText,
+                ]}
+              >
+                {elementValue}
+              </Text>
+            </View>
           )
         )
       ))}
